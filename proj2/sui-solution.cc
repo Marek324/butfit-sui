@@ -19,10 +19,10 @@ struct Node {
 
 std::vector<SearchAction> path(std::shared_ptr<Node> &node) {
   std::vector<SearchAction> path;
-  auto curr = node;
-  while (curr->parent != nullptr) {
-    path.push_back(curr->action);
-    curr = curr->parent;
+  auto n = node;
+  while (n->parent != nullptr) {
+    path.push_back(n->action);
+    n = n->parent;
   }
   std::reverse(path.begin(), path.end());
   return path;
@@ -37,10 +37,8 @@ BreadthFirstSearch::solve(const SearchState &init_state) {
       init_state, SearchAction(Location(), Location()), nullptr));
   explored.insert(init_state);
 
-  while (!frontier.empty()) {
-    auto curr = frontier.front();
-    frontier.pop();
-    auto state = curr->state;
+  for (auto node = frontier.front(); !frontier.empty(); frontier.pop()) {
+    auto state = node->state;
 
     for (auto &action : state.actions()) {
       if (getCurrentRSS() >= mem_limit_)
@@ -52,16 +50,26 @@ BreadthFirstSearch::solve(const SearchState &init_state) {
         continue;
       explored.insert(next);
 
-      auto node = std::make_shared<Node>(next, action, curr);
+      auto next_node = std::make_shared<Node>(next, action, node);
 
       if (next.isFinal())
-        return path(node);
+        return path(next_node);
 
-      frontier.push(node);
+      frontier.push(next_node);
     }
   }
 
   return {};
+}
+
+size_t depth(std::shared_ptr<Node> &node) {
+  auto n = node;
+  size_t d = 0;
+  while (n->parent != nullptr) {
+    d++;
+    n = n->parent;
+  }
+  return d;
 }
 
 std::vector<SearchAction>
@@ -73,8 +81,28 @@ DepthFirstSearch::solve(const SearchState &init_state) {
       init_state, SearchAction(Location(), Location()), nullptr));
   explored.insert(init_state);
 
-  // depth_limit_
-  // mem_limit_
+  for (auto node = frontier.top(); !frontier.empty(); frontier.pop()) {
+    auto state = node->state;
+
+    for (auto &action : state.actions()) {
+      if (getCurrentRSS() >= mem_limit_)
+        return {};
+
+      auto next = action.execute(state);
+
+      if (explored.count(next))
+        continue;
+      explored.insert(next);
+
+      auto next_node = std::make_shared<Node>(next, action, node);
+
+      if (next.isFinal())
+        return path(next_node);
+
+      if (depth(next_node) < depth_limit_)
+        frontier.push(next_node);
+    }
+  }
 
   return {};
 }
