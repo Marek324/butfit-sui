@@ -112,8 +112,43 @@ double StudentHeuristic::distanceLowerBound(const GameState &state) const {
 }
 
 std::vector<SearchAction> AStarSearch::solve(const SearchState &init_state) {
-  std::vector<SearchAction> solution;
-  SearchState state(init_state);
+  std::priority_queue<std::pair<double, std::shared_ptr<Node>>,
+                      std::vector<std::pair<double, std::shared_ptr<Node>>>,
+                      std::greater<>>
+      frontier;
+  std::set<SearchState> explored;
+
+  frontier.push(
+      {compute_heuristic(init_state, *heuristic_),
+       std::make_shared<Node>(init_state, SearchAction(Location(), Location()),
+                              nullptr)});
+  explored.insert(init_state);
+
+  for (auto [_, node] = frontier.top(); !frontier.empty(); frontier.pop()) {
+    auto state = node->state;
+
+    for (auto &action : state.actions()) {
+      if (getCurrentRSS() >= mem_limit_)
+        return {};
+
+      auto next = action.execute(state);
+
+      if (explored.count(next))
+        continue;
+      explored.insert(next);
+
+      auto next_node = std::make_shared<Node>(next, action, node);
+
+      if (next.isFinal())
+        return path(next_node);
+
+      double g = 0;
+      double h = compute_heuristic(state, *heuristic_);
+      double f = g + h;
+
+      frontier.push({f, next_node});
+    }
+  }
 
   return {};
 }
