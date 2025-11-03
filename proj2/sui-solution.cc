@@ -7,6 +7,8 @@
 #include <set>
 #include <stack>
 
+constexpr size_t _50MB = 50 * 1024 * 1024;
+
 struct Node {
   SearchState state;
   SearchAction action;
@@ -41,7 +43,7 @@ BreadthFirstSearch::solve(const SearchState &init_state) {
     auto state = node->state;
 
     for (auto &action : state.actions()) {
-      if (getCurrentRSS() >= mem_limit_)
+      if (getCurrentRSS() >= mem_limit_ - _50MB)
         return {};
 
       auto next = action.execute(state);
@@ -85,7 +87,7 @@ DepthFirstSearch::solve(const SearchState &init_state) {
     auto state = node->state;
 
     for (auto &action : state.actions()) {
-      if (getCurrentRSS() >= mem_limit_)
+      if (getCurrentRSS() >= mem_limit_ - _50MB)
         return {};
 
       auto next = action.execute(state);
@@ -128,7 +130,7 @@ std::vector<SearchAction> AStarSearch::solve(const SearchState &init_state) {
     auto state = node->state;
 
     for (auto &action : state.actions()) {
-      if (getCurrentRSS() >= mem_limit_)
+      if (getCurrentRSS() >= mem_limit_ - _50MB)
         return {};
 
       auto next = action.execute(state);
