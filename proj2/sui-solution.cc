@@ -127,8 +127,6 @@ std::vector<SearchAction> AStarSearch::solve(const SearchState &init_state) {
     auto [_, node] = frontier.top();
     frontier.pop();
     auto state = node->state;
-    if (state.isFinal())
-      return path(node);
 
     int next_depth = node->depth + 1;
     for (auto &action : state.actions()) {
@@ -136,8 +134,11 @@ std::vector<SearchAction> AStarSearch::solve(const SearchState &init_state) {
         return {};
 
       auto next = action.execute(state);
-
       auto next_node = std::make_shared<Node>(next, action, next_depth, node);
+
+      if (next.isFinal())
+        return path(next_node);
+
       if (explored.count(next) && explored[next] <= next_depth)
         continue;
       explored[next] = next_depth;
