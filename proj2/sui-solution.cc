@@ -2,6 +2,7 @@
 #include "search-strategies.h"
 
 #include <algorithm>
+#include <map>
 #include <memory>
 #include <queue>
 #include <set>
@@ -12,11 +13,12 @@ constexpr size_t _50MB = 50 * 1024 * 1024;
 struct Node {
   SearchState state;
   SearchAction action;
+  int depth;
   std::shared_ptr<Node> parent;
 
-  Node(const SearchState &s, const SearchAction &a,
+  Node(const SearchState &s, const SearchAction &a, int d,
        std::shared_ptr<Node> p = nullptr)
-      : state(s), action(a), parent(p) {};
+      : state(s), action(a), depth(d), parent(p) {};
 };
 
 std::vector<SearchAction> path(std::shared_ptr<Node> &node) {
@@ -36,10 +38,12 @@ BreadthFirstSearch::solve(const SearchState &init_state) {
   std::set<SearchState> explored;
 
   frontier.push(std::make_shared<Node>(
-      init_state, SearchAction(Location(), Location()), nullptr));
+      init_state, SearchAction(Location(), Location()), 0, nullptr));
   explored.insert(init_state);
 
-  for (auto node = frontier.front(); !frontier.empty(); frontier.pop()) {
+  while (!frontier.empty()) {
+    auto node = frontier.front();
+    frontier.pop();
     auto state = node->state;
 
     for (auto &action : state.actions()) {
@@ -52,7 +56,7 @@ BreadthFirstSearch::solve(const SearchState &init_state) {
         continue;
       explored.insert(next);
 
-      auto next_node = std::make_shared<Node>(next, action, node);
+      auto next_node = std::make_shared<Node>(next, action, 0, node);
 
       if (next.isFinal())
         return path(next_node);
@@ -64,28 +68,21 @@ BreadthFirstSearch::solve(const SearchState &init_state) {
   return {};
 }
 
-size_t depth(std::shared_ptr<Node> &node) {
-  auto n = node;
-  size_t d = 0;
-  while (n->parent != nullptr) {
-    d++;
-    n = n->parent;
-  }
-  return d;
-}
-
 std::vector<SearchAction>
 DepthFirstSearch::solve(const SearchState &init_state) {
   std::stack<std::shared_ptr<Node>> frontier;
   std::set<SearchState> explored;
 
   frontier.push(std::make_shared<Node>(
-      init_state, SearchAction(Location(), Location()), nullptr));
+      init_state, SearchAction(Location(), Location()), 0, nullptr));
   explored.insert(init_state);
 
-  for (auto node = frontier.top(); !frontier.empty(); frontier.pop()) {
+  while (!frontier.empty()) {
+    auto node = frontier.top();
+    frontier.pop();
     auto state = node->state;
 
+    int next_depth = node->depth + 1;
     for (auto &action : state.actions()) {
       if (getCurrentRSS() >= mem_limit_ - _50MB)
         return {};
@@ -96,12 +93,12 @@ DepthFirstSearch::solve(const SearchState &init_state) {
         continue;
       explored.insert(next);
 
-      auto next_node = std::make_shared<Node>(next, action, node);
+      auto next_node = std::make_shared<Node>(next, action, next_depth, node);
 
       if (next.isFinal())
         return path(next_node);
 
-      if (depth(next_node) < depth_limit_)
+      if (next_depth < depth_limit_)
         frontier.push(next_node);
     }
   }
@@ -118,35 +115,35 @@ std::vector<SearchAction> AStarSearch::solve(const SearchState &init_state) {
                       std::vector<std::pair<double, std::shared_ptr<Node>>>,
                       std::greater<>>
       frontier;
-  std::set<SearchState> explored;
+  std::map<SearchState, double> explored;
 
   frontier.push(
       {compute_heuristic(init_state, *heuristic_),
        std::make_shared<Node>(init_state, SearchAction(Location(), Location()),
-                              nullptr)});
-  explored.insert(init_state);
+                              0, nullptr)});
+  explored[init_state] = 0;
 
-  for (auto [_, node] = frontier.top(); !frontier.empty(); frontier.pop()) {
+  while (!frontier.empty()) {
+    auto [_, node] = frontier.top();
+    frontier.pop();
     auto state = node->state;
+    if (state.isFinal())
+      return path(node);
 
+    int next_depth = node->depth + 1;
     for (auto &action : state.actions()) {
       if (getCurrentRSS() >= mem_limit_ - _50MB)
         return {};
 
       auto next = action.execute(state);
 
-      if (explored.count(next))
+      auto next_node = std::make_shared<Node>(next, action, next_depth, node);
+      if (explored.count(next) && explored[next] <= next_depth)
         continue;
-      explored.insert(next);
+      explored[next] = next_depth;
 
-      auto next_node = std::make_shared<Node>(next, action, node);
-
-      if (next.isFinal())
-        return path(next_node);
-
-      double g = 0;
-      double h = compute_heuristic(state, *heuristic_);
-      double f = g + h;
+      double h = compute_heuristic(next, *heuristic_);
+      double f = next_depth + h;
 
       frontier.push({f, next_node});
     }
