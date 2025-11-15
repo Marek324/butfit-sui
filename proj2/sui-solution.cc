@@ -37,6 +37,9 @@ BreadthFirstSearch::solve(const SearchState &init_state) {
   std::queue<std::shared_ptr<Node>> frontier;
   std::set<SearchState> explored;
 
+  if (init_state.isFinal())
+    return {};
+
   frontier.push(std::make_shared<Node>(
       init_state, SearchAction(Location(), Location()), 0, nullptr));
   explored.insert(init_state);
@@ -67,11 +70,13 @@ BreadthFirstSearch::solve(const SearchState &init_state) {
 
   return {};
 }
-
 std::vector<SearchAction>
 DepthFirstSearch::solve(const SearchState &init_state) {
   std::stack<std::shared_ptr<Node>> frontier;
   std::set<SearchState> explored;
+
+  if (init_state.isFinal())
+    return {};
 
   frontier.push(std::make_shared<Node>(
       init_state, SearchAction(Location(), Location()), 0, nullptr));
@@ -116,6 +121,9 @@ std::vector<SearchAction> AStarSearch::solve(const SearchState &init_state) {
                       std::greater<>>
       frontier;
   std::map<SearchState, double> explored;
+
+  if (init_state.isFinal())
+    return {};
 
   frontier.push(
       {compute_heuristic(init_state, *heuristic_),
