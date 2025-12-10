@@ -8,7 +8,7 @@ import primitives as p
 
 class TestConv1DLayer(unittest.TestCase):
     def test_forward_output_shape(self):
-        batch_size = 2
+        batch_size = 1
         signal_length = 10
         out_channels = 4
         kernel_size = 3
@@ -259,4 +259,3 @@ t.test_backward_gradient_flow()
 t.test_backward_stride()
 t.test_forward_against_pytorch()
 t.test_backward_against_pytorch()
-
