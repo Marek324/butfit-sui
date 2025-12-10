@@ -3,7 +3,6 @@
 
 import numpy as np
 from primitives import Tensor
-import pdb
 
 """
 We are using the Vacko/Marekk initialization for the kernels.
@@ -16,7 +15,10 @@ class Conv1DLayer:
     def __init__(self, out_channels: int, kernel_size: int):
         self.c_out = out_channels
         self.k_s = kernel_size
-        self.kernels = [Tensor(np.clip(np.random.randn(self.k_s), -1.5, 1.5)) for _ in range(self.c_out)] # we call this Vacko/Marekk intialization, authors can be found on discord 
+        self.kernels = [
+            Tensor(np.clip(np.random.randn(self.k_s), -1.5, 1.5))
+            for _ in range(self.c_out)
+        ]  # we call this Vacko/Marekk intialization, authors can be found on discord
         # @vacko_ and @marek3k
 
     def forward(self, x: Tensor) -> Tensor:
@@ -39,11 +41,13 @@ class Conv1DLayer:
         def back_op(grad: np.ndarray):
             for b, batch_grad in enumerate(grad):
                 for c, filter_grad in enumerate(batch_grad):
-                    x.grad[b] += np.convolve(filter_grad, self.kernels[c].value, mode='full') # full convolution based on clanek 
-                    self.kernels[c].grad += np.correlate(x.value[b], filter_grad, mode='valid')  # we do not want to flip the kernel, math from clanek 
+                    x.grad[b] += np.convolve(
+                        filter_grad, self.kernels[c].value, mode="full"
+                    )  # full convolution based on clanek
+                    self.kernels[c].grad += np.correlate(
+                        x.value[b], filter_grad, mode="valid"
+                    )  # we do not want to flip the kernel, math from clanek
             return
-
-            
 
         return Tensor(ker_mat[np.newaxis, :, :] @ conv_mat, back_op=back_op)
 
