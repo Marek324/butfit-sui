@@ -1,0 +1,12 @@
+# Python
+__pycache__/
+.ipynb_checkpoints/
+
+# proj2
+proj2/**/*.o
+proj2/**/*.d
+proj2/fc-sui
+proj2/test-bin
+
+# proj3
+proj3/uv.lock
